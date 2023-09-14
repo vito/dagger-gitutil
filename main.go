@@ -10,12 +10,9 @@ import (
 
 type Gitutil struct{}
 
-func (m *Gitutil) DefaultBranch(
-	ctx context.Context,
-	git *Container,
-	repo string,
-) (string, error) {
-	output, err := git.
+// DefaultBranch returns the default branch of a git repository.
+func (m *Gitutil) DefaultBranch(ctx context.Context, gitBase *Container, repo string) (string, error) {
+	output, err := gitBase.
 		WithExec([]string{"git", "ls-remote", "--symref", repo, "HEAD"}, ContainerWithExecOpts{
 			SkipEntrypoint: true,
 		}).
