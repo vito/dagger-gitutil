@@ -2652,10 +2652,12 @@ type Module struct {
 	q *querybuilder.Selection
 	c graphql.Client
 
-	description *string
-	id          *ModuleID
-	name        *string
-	serve       *Void
+	description            *string
+	id                     *ModuleID
+	name                   *string
+	sdk                    *string
+	serve                  *Void
+	sourceDirectorySubPath *string
 }
 type WithModuleFunc func(r *Module) *Module
 
@@ -2664,6 +2666,37 @@ type WithModuleFunc func(r *Module) *Module
 // This is useful for reusability and readability by not breaking the calling chain.
 func (r *Module) With(f WithModuleFunc) *Module {
 	return f(r)
+}
+
+// Modules used by this module
+func (r *Module) Dependencies(ctx context.Context) ([]Module, error) {
+	q := r.q.Select("dependencies")
+
+	q = q.Select("id")
+
+	type dependencies struct {
+		Id ModuleID
+	}
+
+	convert := func(fields []dependencies) []Module {
+		out := []Module{}
+
+		for i := range fields {
+			out = append(out, Module{id: &fields[i].Id})
+		}
+
+		return out
+	}
+	var response []dependencies
+
+	q = q.Bind(&response)
+
+	err := q.Execute(ctx, r.c)
+	if err != nil {
+		return nil, err
+	}
+
+	return convert(response), nil
 }
 
 // The doc string of the module, if any
@@ -2710,6 +2743,7 @@ func (r *Module) Functions(ctx context.Context) ([]Function, error) {
 	return convert(response), nil
 }
 
+// The ID of the module
 func (r *Module) ID(ctx context.Context) (ModuleID, error) {
 	if r.id != nil {
 		return *r.id, nil
@@ -2775,6 +2809,19 @@ func (r *Module) Name(ctx context.Context) (string, error) {
 	return response, q.Execute(ctx, r.c)
 }
 
+// The SDK used by this module
+func (r *Module) SDK(ctx context.Context) (string, error) {
+	if r.sdk != nil {
+		return *r.sdk, nil
+	}
+	q := r.q.Select("sdk")
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx, r.c)
+}
+
 // ModuleServeOpts contains options for Module.Serve
 type ModuleServeOpts struct {
 	Environment []*ModuleEnvironmentVariable
@@ -2797,6 +2844,29 @@ func (r *Module) Serve(ctx context.Context, opts ...ModuleServeOpts) (Void, erro
 	}
 
 	var response Void
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx, r.c)
+}
+
+// The directory containing the module's source code
+func (r *Module) SourceDirectory() *Directory {
+	q := r.q.Select("sourceDirectory")
+
+	return &Directory{
+		q: q,
+		c: r.c,
+	}
+}
+
+// The module's subpath within the source directory
+func (r *Module) SourceDirectorySubPath(ctx context.Context) (string, error) {
+	if r.sourceDirectorySubPath != nil {
+		return *r.sourceDirectorySubPath, nil
+	}
+	q := r.q.Select("sourceDirectorySubPath")
+
+	var response string
 
 	q = q.Bind(&response)
 	return response, q.Execute(ctx, r.c)
@@ -3638,9 +3708,36 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				os.Exit(2)
 			}
 			return (*Gitutil).DefaultBranch(&parent, ctx, &gitBase, repo)
+		case "LatestSemverTag":
+			var err error
+			var parent Gitutil
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var gitBase Container
+			err = json.Unmarshal([]byte(inputArgs["gitBase"]), &gitBase)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var repo string
+			err = json.Unmarshal([]byte(inputArgs["repo"]), &repo)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var prefix string
+			err = json.Unmarshal([]byte(inputArgs["prefix"]), &prefix)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			return (*Gitutil).LatestSemverTag(&parent, ctx, &gitBase, repo, prefix)
 		case "":
 			var err error
-			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
+			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}},{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}},{\"name\":\"prefix\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"LatestSemverTag\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
 			var typeDef TypeDefInput
 			err = json.Unmarshal(typeDefBytes, &typeDef)
 			if err != nil {
