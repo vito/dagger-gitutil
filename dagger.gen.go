@@ -2699,6 +2699,16 @@ func (r *Module) Dependencies(ctx context.Context) ([]Module, error) {
 	return convert(response), nil
 }
 
+// The dependencies as configured by the module
+func (r *Module) DependencyConfig(ctx context.Context) ([]string, error) {
+	q := r.q.Select("dependencyConfig")
+
+	var response []string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx, r.c)
+}
+
 // The doc string of the module, if any
 func (r *Module) Description(ctx context.Context) (string, error) {
 	if r.description != nil {
@@ -3737,7 +3747,7 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 			return (*Gitutil).LatestSemverTag(&parent, ctx, &gitBase, repo, prefix)
 		case "":
 			var err error
-			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}},{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}},{\"name\":\"prefix\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"LatestSemverTag\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
+			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}},{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}},{\"name\":\"prefix\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"name\":\"LatestSemverTag\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
 			var typeDef TypeDefInput
 			err = json.Unmarshal(typeDefBytes, &typeDef)
 			if err != nil {
