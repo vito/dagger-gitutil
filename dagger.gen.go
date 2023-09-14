@@ -3625,8 +3625,8 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				fmt.Println(err.Error())
 				os.Exit(2)
 			}
-			var git Container
-			err = json.Unmarshal([]byte(inputArgs["git"]), &git)
+			var gitBase Container
+			err = json.Unmarshal([]byte(inputArgs["gitBase"]), &gitBase)
 			if err != nil {
 				fmt.Println(err.Error())
 				os.Exit(2)
@@ -3637,10 +3637,10 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				fmt.Println(err.Error())
 				os.Exit(2)
 			}
-			return (*Gitutil).DefaultBranch(&parent, ctx, &git, repo)
+			return (*Gitutil).DefaultBranch(&parent, ctx, &gitBase, repo)
 		case "":
 			var err error
-			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"git\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
+			var typeDefBytes []byte = []byte("{\"asObject\":{\"functions\":[{\"args\":[{\"name\":\"gitBase\",\"typeDef\":{\"asObject\":{\"name\":\"Container\"},\"kind\":\"ObjectKind\"}},{\"name\":\"repo\",\"typeDef\":{\"kind\":\"StringKind\"}}],\"description\":\"DefaultBranch returns the default branch of a git repository.\\n\",\"name\":\"DefaultBranch\",\"returnType\":{\"kind\":\"StringKind\"}}],\"name\":\"Gitutil\"},\"kind\":\"ObjectKind\"}")
 			var typeDef TypeDefInput
 			err = json.Unmarshal(typeDefBytes, &typeDef)
 			if err != nil {
