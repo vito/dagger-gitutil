@@ -10,8 +10,6 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-var DefaultBase = dag.Apko().Wolfi([]string{"git"})
-
 // GitUtil provides various utilities for working with Git repositories.
 type GitUtil struct {
 	CustomBase *Container `json:"customBase,omitempty"`
@@ -123,5 +121,5 @@ func (m *GitRepo) Base() *Container {
 		return m.CustomBase
 	}
 
-	return DefaultBase
+	return dag.Apko().Wolfi([]string{"git"})
 }

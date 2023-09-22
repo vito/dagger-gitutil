@@ -3908,6 +3908,41 @@ func main() {
 
 func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName string, inputArgs map[string][]byte) (any, error) {
 	switch parentName {
+	case "GitUtil":
+		switch fnName {
+		case "Repo":
+			var err error
+			var parent GitUtil
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var url string
+			err = json.Unmarshal([]byte(inputArgs["url"]), &url)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			return (*GitUtil).Repo(&parent, url), nil
+		case "WithBase":
+			var err error
+			var parent GitUtil
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var base *Container
+			err = json.Unmarshal([]byte(inputArgs["base"]), &base)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			return (*GitUtil).WithBase(&parent, base), nil
+		default:
+			return nil, fmt.Errorf("unknown function %s", fnName)
+		}
 	case "GitRepo":
 		switch fnName {
 		case "Base":
@@ -3947,41 +3982,6 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				}
 			}
 			return (*GitRepo).LatestSemverTag(&parent, ctx, opts)
-		default:
-			return nil, fmt.Errorf("unknown function %s", fnName)
-		}
-	case "GitUtil":
-		switch fnName {
-		case "Repo":
-			var err error
-			var parent GitUtil
-			err = json.Unmarshal(parentJSON, &parent)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			var url string
-			err = json.Unmarshal([]byte(inputArgs["url"]), &url)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			return (*GitUtil).Repo(&parent, url), nil
-		case "WithBase":
-			var err error
-			var parent GitUtil
-			err = json.Unmarshal(parentJSON, &parent)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			var base *Container
-			err = json.Unmarshal([]byte(inputArgs["base"]), &base)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			return (*GitUtil).WithBase(&parent, base), nil
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
