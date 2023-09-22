@@ -24,24 +24,24 @@ func (m *GitUtil) WithBase(base *Container) *GitUtil {
 // WithRepo sets the repo for future calls to run against.
 func (m *GitUtil) Repo(url string) *GitRepo {
 	return &GitRepo{
-		CustomBase: m.CustomBase,
-		URL:        url,
+		GitUtil: m,
+		URL:     url,
 	}
+}
+
+// Base returns the base image used for git commands.
+func (m *GitUtil) Base() *Container {
+	if m.CustomBase != nil {
+		return m.CustomBase
+	}
+
+	return dag.Apko().Wolfi([]string{"git"})
 }
 
 // GitRepo represents a Git repository.
 type GitRepo struct {
-	CustomBase *Container `json:"customBase,omitempty"`
-	URL        string     `json:"url"`
-}
-
-// Base returns the base image used for git commands.
-func (m *GitRepo) Base() *Container {
-	// if m.CustomBase != nil {
-	// 	return m.CustomBase
-	// }
-
-	return dag.Apko().Wolfi([]string{"git"})
+	*GitUtil
+	URL string `json:"url"`
 }
 
 // DefaultBranch returns the default branch of a git repository.
