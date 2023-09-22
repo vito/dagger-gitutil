@@ -3910,21 +3910,6 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 	switch parentName {
 	case "GitUtil":
 		switch fnName {
-		case "WithBase":
-			var err error
-			var parent GitUtil
-			err = json.Unmarshal(parentJSON, &parent)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			var base *Container
-			err = json.Unmarshal([]byte(inputArgs["base"]), &base)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			return (*GitUtil).WithBase(&parent, base), nil
 		case "Repo":
 			var err error
 			var parent GitUtil
@@ -3940,11 +3925,35 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				os.Exit(2)
 			}
 			return (*GitUtil).Repo(&parent, url), nil
+		case "WithBase":
+			var err error
+			var parent GitUtil
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			var base *Container
+			err = json.Unmarshal([]byte(inputArgs["base"]), &base)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			return (*GitUtil).WithBase(&parent, base), nil
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
 	case "GitRepo":
 		switch fnName {
+		case "Base":
+			var err error
+			var parent GitRepo
+			err = json.Unmarshal(parentJSON, &parent)
+			if err != nil {
+				fmt.Println(err.Error())
+				os.Exit(2)
+			}
+			return (*GitRepo).Base(&parent), nil
 		case "DefaultBranch":
 			var err error
 			var parent GitRepo
@@ -3973,15 +3982,6 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 				}
 			}
 			return (*GitRepo).LatestSemverTag(&parent, ctx, opts)
-		case "Base":
-			var err error
-			var parent GitRepo
-			err = json.Unmarshal(parentJSON, &parent)
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(2)
-			}
-			return (*GitRepo).Base(&parent), nil
 		default:
 			return nil, fmt.Errorf("unknown function %s", fnName)
 		}
@@ -3990,13 +3990,12 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 			WithObject(
 				dag.TypeDef().WithObject("GitUtil").
 					WithFunction(
-						dag.NewFunction("WithBase",
-							dag.TypeDef().WithObject("GitUtil")).
-							WithDescription("WithRepo sets the repo for future calls to run against.\n").
-							WithArg("base", dag.TypeDef().WithObject("Container"))).
-					WithFunction(
 						dag.NewFunction("Repo",
 							dag.TypeDef().WithObject("GitRepo").
+								WithFunction(
+									dag.NewFunction("Base",
+										dag.TypeDef().WithObject("Container")).
+										WithDescription("Base returns the base image used for git commands.\n")).
 								WithFunction(
 									dag.NewFunction("DefaultBranch",
 										dag.TypeDef().WithKind(Stringkind)).
@@ -4006,17 +4005,22 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 										dag.TypeDef().WithKind(Stringkind)).
 										WithDescription("LatestSemverTag returns the latest semver tag of a git repository.\n\nIt accepts an optional prefix which can be used to filter tags. For example,\nif you have multiple sub-directories in a monorepo you might have a\nconvention like sub/path/v1.2.3.\n").
 										WithArg("Prefix", dag.TypeDef().WithKind(Stringkind).WithOptional(true), FunctionWithArgOpts{Description: "Prefix to filter tags by."})).
-								WithFunction(
-									dag.NewFunction("Base",
-										dag.TypeDef().WithObject("Container")).
-										WithDescription("Base returns the base image used for git commands.\n")).
 								WithField("CustomBase", dag.TypeDef().WithObject("Container"), TypeDefWithFieldOpts{Description: ""}).
 								WithField("URL", dag.TypeDef().WithKind(Stringkind), TypeDefWithFieldOpts{Description: ""})).
 							WithDescription("WithRepo sets the repo for future calls to run against.\n").
 							WithArg("url", dag.TypeDef().WithKind(Stringkind))).
+					WithFunction(
+						dag.NewFunction("WithBase",
+							dag.TypeDef().WithObject("GitUtil")).
+							WithDescription("WithRepo sets the repo for future calls to run against.\n").
+							WithArg("base", dag.TypeDef().WithObject("Container"))).
 					WithField("CustomBase", dag.TypeDef().WithObject("Container"), TypeDefWithFieldOpts{Description: ""})).
 			WithObject(
 				dag.TypeDef().WithObject("GitRepo").
+					WithFunction(
+						dag.NewFunction("Base",
+							dag.TypeDef().WithObject("Container")).
+							WithDescription("Base returns the base image used for git commands.\n")).
 					WithFunction(
 						dag.NewFunction("DefaultBranch",
 							dag.TypeDef().WithKind(Stringkind)).
@@ -4026,10 +4030,6 @@ func invoke(ctx context.Context, parentJSON []byte, parentName string, fnName st
 							dag.TypeDef().WithKind(Stringkind)).
 							WithDescription("LatestSemverTag returns the latest semver tag of a git repository.\n\nIt accepts an optional prefix which can be used to filter tags. For example,\nif you have multiple sub-directories in a monorepo you might have a\nconvention like sub/path/v1.2.3.\n").
 							WithArg("Prefix", dag.TypeDef().WithKind(Stringkind).WithOptional(true), FunctionWithArgOpts{Description: "Prefix to filter tags by."})).
-					WithFunction(
-						dag.NewFunction("Base",
-							dag.TypeDef().WithObject("Container")).
-							WithDescription("Base returns the base image used for git commands.\n")).
 					WithField("CustomBase", dag.TypeDef().WithObject("Container"), TypeDefWithFieldOpts{Description: ""}).
 					WithField("URL", dag.TypeDef().WithKind(Stringkind), TypeDefWithFieldOpts{Description: ""})), nil
 	default:

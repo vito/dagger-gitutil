@@ -16,17 +16,26 @@ type GitUtil struct {
 }
 
 // WithRepo sets the repo for future calls to run against.
-func (m *GitUtil) WithBase(base *Container) *GitUtil {
-	m.CustomBase = base
-	return m
-}
-
-// WithRepo sets the repo for future calls to run against.
 func (m *GitUtil) Repo(url string) *GitRepo {
 	return &GitRepo{
 		CustomBase: m.CustomBase,
 		URL:        url,
 	}
+}
+
+// Base returns the base image used for git commands.
+func (m *GitRepo) Base() *Container {
+	if m.CustomBase != nil {
+		return m.CustomBase
+	}
+
+	return dag.Apko().Wolfi([]string{"git"})
+}
+
+// WithRepo sets the repo for future calls to run against.
+func (m *GitUtil) WithBase(base *Container) *GitUtil {
+	m.CustomBase = base
+	return m
 }
 
 // GitRepo represents a Git repository.
@@ -113,13 +122,4 @@ func (repo *GitRepo) LatestSemverTag(ctx context.Context, opts struct {
 	}
 
 	return "", fmt.Errorf("no versions present")
-}
-
-// Base returns the base image used for git commands.
-func (m *GitRepo) Base() *Container {
-	if m.CustomBase != nil {
-		return m.CustomBase
-	}
-
-	return dag.Apko().Wolfi([]string{"git"})
 }
