@@ -10,6 +10,8 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+var DefaultBase = dag.Apko().Wolfi([]string{"git"})
+
 // GitUtil provides various utilities for working with Git repositories.
 type GitUtil struct {
 	CustomBase *Container `json:"customBase,omitempty"`
@@ -24,24 +26,15 @@ func (m *GitUtil) WithBase(base *Container) *GitUtil {
 // WithRepo sets the repo for future calls to run against.
 func (m *GitUtil) Repo(url string) *GitRepo {
 	return &GitRepo{
-		GitUtil: m,
-		URL:     url,
+		CustomBase: m.CustomBase,
+		URL:        url,
 	}
-}
-
-// Base returns the base image used for git commands.
-func (m *GitUtil) Base() *Container {
-	if m.CustomBase != nil {
-		return m.CustomBase
-	}
-
-	return dag.Apko().Wolfi([]string{"git"})
 }
 
 // GitRepo represents a Git repository.
 type GitRepo struct {
-	*GitUtil
-	URL string `json:"url"`
+	CustomBase *Container `json:"customBase,omitempty"`
+	URL        string     `json:"url"`
 }
 
 // DefaultBranch returns the default branch of a git repository.
@@ -122,4 +115,13 @@ func (repo *GitRepo) LatestSemverTag(ctx context.Context, opts struct {
 	}
 
 	return "", fmt.Errorf("no versions present")
+}
+
+// Base returns the base image used for git commands.
+func (m *GitRepo) Base() *Container {
+	if m.CustomBase != nil {
+		return m.CustomBase
+	}
+
+	return DefaultBase
 }
