@@ -1,5 +1,8 @@
 {
   "root": "",
-  "name": "gitutil",
-  "sdk": "go"
+  "name": "git-util",
+  "sdk": "go",
+  "dependencies": [
+    "github.com/vito/daggerverse/apko@4868f179002fcdbcac022a5836cdfa2c586c65b1"
+  ]
 }

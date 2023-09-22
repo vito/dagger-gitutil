@@ -10,16 +10,48 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-type Gitutil struct{}
+// GitUtil provides various utilities for working with Git repositories.
+type GitUtil struct {
+	CustomBase *Container `json:"customBase,omitempty"`
+}
+
+// WithRepo sets the repo for future calls to run against.
+func (m *GitUtil) WithBase(base *Container) *GitUtil {
+	m.CustomBase = base
+	return m
+}
+
+// WithRepo sets the repo for future calls to run against.
+func (m *GitUtil) Repo(url string) *GitRepo {
+	return &GitRepo{
+		CustomBase: m.CustomBase,
+		URL:        url,
+	}
+}
+
+// GitRepo represents a Git repository.
+type GitRepo struct {
+	CustomBase *Container `json:"customBase,omitempty"`
+	URL        string     `json:"url"`
+}
+
+// Base returns the base image used for git commands.
+func (m *GitRepo) Base() *Container {
+	// if m.CustomBase != nil {
+	// 	return m.CustomBase
+	// }
+
+	return dag.Apko().Wolfi([]string{"git"})
+}
 
 // DefaultBranch returns the default branch of a git repository.
-func (m *Gitutil) DefaultBranch(ctx context.Context, gitBase *Container, repo string) (string, error) {
+func (repo *GitRepo) DefaultBranch(ctx context.Context) (string, error) {
 	// TODO: this should not be cached. in practice it doesn't change often, but
 	// someone setting up a repo for the first time (i.e. a freshly baked Module)
 	// might change it soon after indexing.
 
-	output, err := gitBase.
-		WithExec([]string{"git", "ls-remote", "--symref", repo, "HEAD"}, ContainerWithExecOpts{
+	output, err := repo.Base().
+		WithExec([]string{"git", "ls-remote", "--symref", repo.URL, "HEAD"}, ContainerWithExecOpts{
 			SkipEntrypoint: true,
 		}).
 		Stdout(ctx)
@@ -48,11 +80,13 @@ func (m *Gitutil) DefaultBranch(ctx context.Context, gitBase *Container, repo st
 // It accepts an optional prefix which can be used to filter tags. For example,
 // if you have multiple sub-directories in a monorepo you might have a
 // convention like sub/path/v1.2.3.
-func (m *Gitutil) LatestSemverTag(ctx context.Context, gitBase *Container, repo, prefix string) (string, error) {
+func (repo *GitRepo) LatestSemverTag(ctx context.Context, opts struct {
+	Prefix string `doc:"Prefix to filter tags by."`
+}) (string, error) {
 	// TODO: this really should not be cached
 
-	output, err := gitBase.
-		WithExec([]string{"git", "ls-remote", "--tags", repo, prefix + "v*"}, ContainerWithExecOpts{
+	output, err := repo.Base().
+		WithExec([]string{"git", "ls-remote", "--tags", repo.URL, opts.Prefix + "v*"}, ContainerWithExecOpts{
 			SkipEntrypoint: true,
 		}).
 		Stdout(ctx)
@@ -69,7 +103,7 @@ func (m *Gitutil) LatestSemverTag(ctx context.Context, gitBase *Container, repo,
 			continue
 		}
 
-		refPrefix := "refs/tags/" + prefix
+		refPrefix := "refs/tags/" + opts.Prefix
 		if !strings.HasPrefix(fields[1], refPrefix) {
 			continue
 		}
