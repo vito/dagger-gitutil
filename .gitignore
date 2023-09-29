@@ -1,4 +1,3 @@
 /.envrc
 /dagger.gen.go
-/internal/
-/querybuilder/
+/internal/querybuilder/
